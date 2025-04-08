@@ -1,0 +1,22 @@
+#Makefile for Banker's Algorithm implementation
+#COSC 3360 Operating Systems - Spring 2025
+CC = gcc
+CFLAGS = -Wall -g
+LDFLAGS = -lpthread
+
+SRCS = main.c banker.c process.c scheduler.c utils.c
+OBJS = $(SRCS:.c=.o)
+TARGET = banker
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+$(CC) -o $@ $^ $(LDFLAGS)
+
+%.o: %.c
+$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+rm -f $(OBJS) $(TARGET)
+
+.PHONY: all clean
