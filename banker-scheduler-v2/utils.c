@@ -49,17 +49,14 @@ char* number_to_english(int num) {
 char* trim(char *str) {
     char *end;
     
-    // Trim leading space
     while (isspace((unsigned char)*str)) str++;
     
-    if (*str == 0) // All spaces?
+    if (*str == 0)
         return str;
     
-    // Trim trailing space
     end = str + strlen(str) - 1;
     while (end > str && isspace((unsigned char)*end)) end--;
     
-    // Write new null terminator
     *(end + 1) = 0;
     
     return str;
@@ -86,25 +83,22 @@ char** split_string(char *str, char *delim, int *count) {
 
 // Parse a line of resource instances
 void parse_resource_line(char *line, Resource *resource) {
-    // Format: "R1: hotel: Hilton, Marriott, Omni, ..."
     char *ptr = strchr(line, ':');
     if (!ptr) {
         fprintf(stderr, "Invalid resource line format: %s\n", line);
         exit(1);
     }
     
-    ptr++; // Skip ':'
+    ptr++;
     char *name_end = strchr(ptr, ':');
     if (!name_end) {
         fprintf(stderr, "Invalid resource line format: %s\n", line);
         exit(1);
     }
     
-    // Extract resource name
     *name_end = '\0';
     resource->name = strdup(trim(ptr));
     
-    // Extract instances
     ptr = name_end + 1;
     int count;
     char **instances = split_string(ptr, ",", &count);
@@ -113,9 +107,7 @@ void parse_resource_line(char *line, Resource *resource) {
     resource->count = count;
 }
 // Parse process instructions from a file
-// Parse instructions from a file for a process
 void parse_instructions(FILE *file, Process *process) {
-    // Initialize the process
     process->num_instructions = 0;
     process->instructions = NULL;
     int max_resources = process->max_resources;
@@ -124,12 +116,10 @@ void parse_instructions(FILE *file, Process *process) {
     while (fgets(line, sizeof(line), file)) {
         char *trimmed = trim(line);
         
-        // Skip empty lines and comments
         if (trimmed[0] == '\0' || trimmed[0] == '#')
             continue;
             
         if (strncmp(trimmed, "compute", 7) == 0) {
-            // Format: "compute X ;"
             int computation_time;
             if (sscanf(trimmed, "compute %d ;", &computation_time) != 1) {
                 fprintf(stderr, "Invalid compute instruction: %s\n", trimmed);
@@ -145,19 +135,16 @@ void parse_instructions(FILE *file, Process *process) {
             instr->computation_time = computation_time;
             
         } else if (strncmp(trimmed, "request", 7) == 0) {
-            // Format: "request X Y Z ... ;"
             process->num_instructions++;
             process->instructions = realloc(process->instructions, 
                                            process->num_instructions * sizeof(Instruction));
             
             Instruction *instr = &process->instructions[process->num_instructions - 1];
             instr->type = REQUEST;
-            instr->computation_time = 1;  // Fixed time for request
+            instr->computation_time = 1;
             
-            // Parse resource vector
             instr->resource_vector = malloc(process->max_resources * sizeof(int));
             
-            // Skip "request" keyword
             char *ptr = trimmed + 7;
             
             for (int i = 0; i < process->max_resources; i++) {
@@ -174,13 +161,11 @@ void parse_instructions(FILE *file, Process *process) {
                     exit(1);
                 }
                 
-                // Move to next value
                 while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != ';')
                     ptr++;
             }
             
         } else if (strncmp(trimmed, "use_resources", 13) == 0) {
-            // Format: "use_resources X Y ;"
             int computation_time, repeat_count;
             if (sscanf(trimmed, "use_resources %d %d ;", &computation_time, &repeat_count) != 2) {
                 fprintf(stderr, "Invalid use_resources instruction: %s\n", trimmed);
@@ -197,7 +182,6 @@ void parse_instructions(FILE *file, Process *process) {
             instr->repeat_count = repeat_count;
             
         } else if (strncmp(trimmed, "reduce_resources", 16) == 0) {
-            // Format: "reduce_resources X Y ;"
             int computation_time, reduction;
             if (sscanf(trimmed, "reduce_resources %d %d ;", &computation_time, &reduction) != 2) {
                 fprintf(stderr, "Invalid reduce_resources instruction: %s\n", trimmed);
@@ -214,23 +198,19 @@ void parse_instructions(FILE *file, Process *process) {
             instr->repeat_count = reduction;
             
         } else if (strncmp(trimmed, "release", 7) == 0) {
-            // Format: "release X Y Z ... ;"
-            // Parse resource vector
-            char *ptr = trimmed + 7; // Skip "release"
+            char *ptr = trimmed + 7;
             char *semicolon = strchr(ptr, ';');
             if (!semicolon) {
                 fprintf(stderr, "Missing semicolon in release: %s\n", trimmed);
                 exit(1);
             }
             
-            // Count how many resources are in this release
             int num_resources = 0;
             char *temp_ptr = ptr;
             while (temp_ptr < semicolon) {
                 while (isspace(*temp_ptr)) temp_ptr++;
                 if (temp_ptr >= semicolon) break;
                 
-                // Skip over the number
                 while (temp_ptr < semicolon && !isspace(*temp_ptr) && *temp_ptr != ';') temp_ptr++;
                 num_resources++;
             }
@@ -245,12 +225,10 @@ void parse_instructions(FILE *file, Process *process) {
             
             Instruction *instr = &process->instructions[process->num_instructions - 1];
             instr->type = RELEASE;
-            instr->computation_time = 1;  // Fixed time for release
+            instr->computation_time = 1;
             
-            // Allocate and parse resource vector
             instr->resource_vector = malloc(max_resources * sizeof(int));
             
-            // Parse the actual values
             temp_ptr = ptr;
             for (int i = 0; i < num_resources; i++) {
                 while (isspace(*temp_ptr)) temp_ptr++;
@@ -260,19 +238,17 @@ void parse_instructions(FILE *file, Process *process) {
                     exit(1);
                 }
                 
-                // Move to next value
                 while (!isspace(*temp_ptr) && *temp_ptr != ';') temp_ptr++;
             }
             
         } else if (strncmp(trimmed, "print_resources_used", 20) == 0) {
-            // Format: "print_resources_used ;"
             process->num_instructions++;
             process->instructions = realloc(process->instructions, 
                                            process->num_instructions * sizeof(Instruction));
             
             Instruction *instr = &process->instructions[process->num_instructions - 1];
             instr->type = PRINT_RESOURCES;
-            instr->computation_time = 1;  // Fixed time for print
+            instr->computation_time = 1;
             
         } else {
             fprintf(stderr, "Unknown instruction: %s\n", trimmed);
@@ -280,6 +256,5 @@ void parse_instructions(FILE *file, Process *process) {
         }
     }
     
-    // Set max_resources in the process structure
     process->max_resources = max_resources;
 }

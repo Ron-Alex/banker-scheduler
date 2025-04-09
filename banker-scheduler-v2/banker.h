@@ -10,7 +10,7 @@
 #include <sys/sem.h>
 #include <limits.h>
 
-// Scheduler types
+// Schedulers - EDF OR LLF
 #define SCHEDULER_EDF 0
 #define SCHEDULER_LLF 1
 
@@ -35,51 +35,51 @@ typedef enum {
 typedef struct {
     InstructionType type;
     int computation_time;
-    int *resource_vector;  // For REQUEST and RELEASE
-    int resource_count;    // For USE_RESOURCES and REDUCE_RESOURCES
-    int repeat_count;      // For USE_RESOURCES and REDUCE_RESOURCES
+    int *resource_vector;  
+    int resource_count;
+    int repeat_count; 
 } Instruction;
 
-// Resource structure
+// Resources and instances
 typedef struct {
-    char *name;           // Resource type name (e.g., "hotel")
-    char **instances;     // Instances of the resource (e.g., ["Hilton", "Marriott", ...])
-    int count;            // Number of instances
-    int *allocated;       // Track which process owns each instance (by process ID)
+    char *name;           
+    char **instances;     
+    int count;            
+    int *allocated;
 } Resource;
 
 // Process structure
 typedef struct {
     int id;                       // Process ID
-    int initial_deadline;         // Original deadline
-    int remaining_deadline;       // Current remaining deadline
-    int initial_computation_time; // Original computation time
-    int remaining_computation_time; // Current remaining computation time
+    int initial_deadline;         // Starting value
+    int remaining_deadline;       // Time left
+    int initial_computation_time; // Computation needed at start
+    int remaining_computation_time; // Remaning computation time
     Instruction *instructions;    // Array of instructions
-    int num_instructions;         // Number of instructions
-    int current_instr;            // Current instruction index
-    int *max;                     // Maximum resource demand
+    int num_instructions;         // Total instruction count
+    int current_instr;            // Current index
+    int *max;                     // Maximum resources that might be requested
     int *allocation;              // Currently allocated resources
-    int *need;                    // Remaining needed resources
-    char *master_string;          // Current master string
-    int pipe_read;                // Pipe for reading from parent
-    int pipe_write;               // Pipe for writing to parent
+    int *need;                    // Remaining resources needed
+    char *master_string;          // Running string
+    int pipe_read;                // Pipe for reading
+    int pipe_write;               // Pipe for writing
     int missed_deadline;          // Flag for missed deadline
     pid_t pid;                    // Process PID
-    int max_resources;            // Number of resource types for this process
+    int max_resources;            // Number of resource types
 } Process;
 
-// System state structure
+// Holds all system info, processes, and resources
 typedef struct {
-    int m;                 // Number of resource types
-    int n;                 // Number of processes
-    Resource *resources;   // Array of resources
-    Process *processes;    // Array of processes
+    int m;                 // Total resource types
+    int n;                 // Total processes
+    Resource *resources;   // Resource info
+    Process *processes;    // Process info
     int *available;        // Available resources
-    int *initial_available; // Initial available resources
+    int *initial_available; // Starting resources
 } SystemState;
 
-// Function prototypes for banker.c
+// Function prototypes for resource reading/initialization and Banker's algorithm
 void read_system_state(SystemState *state, char *filename);
 void read_resource_instances(SystemState *state, char *filename);
 void init_semaphores(SystemState *state);
@@ -88,32 +88,32 @@ int request_resources(SystemState *state, int process_id, int *request);
 void release_resources(SystemState *state, int process_id, int *release);
 void print_system_state(SystemState *state);
 
-// Function prototypes for process.c
+// Function prototypes for process creation and execution
 void create_processes(SystemState *state);
 void execute_instruction(SystemState *state, int process_id);
 void update_master_string(Process *process, Resource *resources, int m);
 void use_resources(Process *process, Resource *resources, int m, int times);
 void reduce_resources(Process *process, Resource *resources, int m, int reduction);
 
-// Function prototypes for scheduler.c
+// Function prototypes to pick next process
 int edf_scheduler(SystemState *state, int *last_serviced);
 int llf_scheduler(SystemState *state, int *last_serviced);
 
-// Function prototypes for utils.c
+// Function prototypes for utility - parsing, trimmming etc
 char* number_to_english(int num);
 void parse_instructions(FILE *fp, Process *process);
 void parse_resource_line(char *line, Resource *resource);
 char* trim(char *str);
 char** split_string(char *str, char *delim, int *count);
 
-// Union for semaphores
+// Union definition for semaphores
 union semun {
     int val;
     struct semid_ds *buf;
     unsigned short *array;
 };
 
-// External globals for IPC
+// Globals for semaphores, counts and memory ID
 extern int *semaphores;
 extern int sem_count;
 extern int shmid;

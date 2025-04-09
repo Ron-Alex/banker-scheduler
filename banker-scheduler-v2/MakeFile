@@ -1,5 +1,6 @@
 #Makefile for Banker's Algorithm implementation
-#COSC 3360 Operating Systems - Spring 2025
+#COSC 3360 Operating Systems
+
 CC = gcc
 CFLAGS = -Wall -g
 LDFLAGS = -lpthread
