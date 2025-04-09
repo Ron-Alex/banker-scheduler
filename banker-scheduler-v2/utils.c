@@ -1,4 +1,5 @@
 #include "banker.h"
+#include <ctype.h>
 
 // Convert a number to English words
 char* number_to_english(int num) {
@@ -111,8 +112,26 @@ void parse_resource_line(char *line, Resource *resource) {
     resource->instances = instances;
     resource->count = count;
 }
-
- {
+// Parse process instructions from a file
+// Parse instructions from a file for a process
+void parse_instructions(FILE *file, Process *process) {
+    // Initialize the process
+    process->num_instructions = 0;
+    process->instructions = NULL;
+    int max_resources = process->max_resources;
+    
+    char line[1024];
+    while (fgets(line, sizeof(line), file)) {
+        char *trimmed = trim(line);
+        
+        // Skip empty lines and comments
+        if (trimmed[0] == '\0' || trimmed[0] == '#')
+            continue;
+            
+        if (strncmp(trimmed, "compute", 7) == 0) {
+            // Format: "compute X ;"
+            int computation_time;
+            if (sscanf(trimmed, "compute %d ;", &computation_time) != 1) {
                 fprintf(stderr, "Invalid compute instruction: %s\n", trimmed);
                 exit(1);
             }
@@ -229,7 +248,7 @@ void parse_resource_line(char *line, Resource *resource) {
             instr->computation_time = 1;  // Fixed time for release
             
             // Allocate and parse resource vector
-            instr->resource_vector = malloc(num_resources * sizeof(int));
+            instr->resource_vector = malloc(max_resources * sizeof(int));
             
             // Parse the actual values
             temp_ptr = ptr;
